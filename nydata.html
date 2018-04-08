@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset='utf-8' />
+    <title>New York City Rental Prices</title>
+    <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+    <script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.44.1/mapbox-gl.js'></script>
+    <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.44.1/mapbox-gl.css' rel='stylesheet' />
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+        }
+
+        #map {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 100%;
+        }
+
+        h2,
+        h3 {
+            margin: 10px;
+            font-size: 1.2em;
+        }
+
+        h3 {
+            font-size: 1em;
+        }
+
+        p {
+            font-size: 0.85em;
+            margin: 10px;
+            text-align: left;
+        }
+
+        /**
+         * Set rules for how the map overlays
+         * (info box and legend) will be displayed
+         * on the page. */
+
+        .map-overlay {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            background: rgba(255, 255, 255, 0.8);
+            margin-right: 20px;
+            font-family: Arial, sans-serif;
+            overflow: auto;
+            border-radius: 3px;
+        }
+
+        #features {
+            top: 0;
+            height: 220px;
+            margin-top: 20px;
+            width: 250px;
+        }
+
+        #legend {
+            padding: 8px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+            line-height: 18px;
+            height: 175px;
+            margin-bottom: 40px;
+            width: 330px;
+        }
+
+        .legend-key {
+            display: inline-block;
+            border-radius: 20%;
+            width: 10px;
+            height: 10px;
+            margin-right: 5px;
+        }
+
+        .button {
+            font-family: Arial, sans-serif;
+            overflow: auto;
+            border-radius: 3px;
+            width: 200px;
+        }
+    </style>
+</head>
+
+<body>
+    <div id='map'></div>
+    <div class='map-overlay' id='features'>
+        <h2>NYC Rent Prices</h2>
+        <div id='pd'>
+            <p>Hover over a neighborhood!</p>
+        </div>
+    </div>
+    <div class='map-overlay' id='legend' align="center">
+        <h3 id="displaying">Currently Displaying Median Prices</h3>
+        <div style="padding-bottom: 5px;">
+            <input type='button' class='button' id='medianButton' value='Display Median Prices' name='' />
+        </div>
+        <div style="padding-bottom: 5px;">
+            <input type='button' class='button' id='studioButton' value='Display Studio Prices' name='' />
+        </div>
+        <div style="padding-bottom: 5px;">
+            <input type='button' class='button' id='oneButton' value='Display 1 Bedroom Prices' name='' />
+        </div>
+        <div style="padding-bottom: 5px;">
+            <input type='button' class='button' id='twoButton' value='Display 2 Bedroom Prices' name='' />
+        </div>
+        <div style="padding-bottom: 5px;">
+            <input type='button' class='button' id='threeButton' value='Display 3+ Bedroom Prices' name='' />
+        </div>
+    </div>
+    <script>
+        //replace with YOUR access token
+        mapboxgl.accessToken = 'pk.eyJ1IjoiandhbmcxOTkyNCIsImEiOiJjamZpeWw5Y2UwM2dxMndyZWEzbmc5bXdpIn0.ErOU74ORWI62R0N2h49Cgw';
+
+        //globals for the choropleth
+        let COLORS = ['#55EE2E', '#80EF2D', '#ADEF2B', '#DCF02A', '#F2D828', '#F3A927', '#F47A25', '#F54924'],
+            BREAKS_MED = [1800, 2200, 2600, 3000, 3200, 3600, 4500, 5800]
+        BREAKS_STUDIO = [1800, 2200, 2600, 3000, 3200, 3600, 4500, 5800]
+        BREAKS_ONE = [1800, 2200, 2600, 3000, 3200, 3600, 4500, 5800]
+        BREAKS_TWO = [1800, 2200, 2600, 3000, 3200, 3600, 4500, 5800]
+        BREAKS_THREE = [1800, 2200, 2600, 3000, 3200, 3600, 4500, 5800]
+
+        //create a map using the Mapbox Dark theme, zoomed in to Philly
+        var map = new mapboxgl.Map({
+            container: 'map',
+            style: 'mapbox://styles/mapbox/dark-v9',
+            zoom: 11.5,
+            center: [-73.968596, 40.769497]
+        });
+
+        //data source: http://opendata.dc.gov/datasets/e87a760828844422afe864a6754049c2_20?geometry=-77.297%2C38.854%2C-76.732%2C38.934
+        map.on('load', function() {
+            map.addSource('housing_data', {
+                type: 'geojson',
+                data: 'ny.geojson'
+            });
+
+            // median layer
+            map.addLayer({
+                "id": "median",
+                "type": "fill",
+                "source": "housing_data",
+                "paint": {
+                    "fill-color": {
+                        property: "median",
+                        stops: [
+                            [BREAKS_MED[0], COLORS[0]],
+                            [BREAKS_MED[1], COLORS[1]],
+                            [BREAKS_MED[2], COLORS[2]],
+                            [BREAKS_MED[3], COLORS[3]],
+                            [BREAKS_MED[4], COLORS[4]],
+                            [BREAKS_MED[5], COLORS[5]],
+                            [BREAKS_MED[6], COLORS[6]]
+                        ]
+                    },
+                    "fill-opacity": 0.7
+                }
+            });
+            map.addLayer({
+                "id": "median_label",
+                "type": "symbol",
+                "source": "housing_data",
+                "layout": {
+                    "text-field": "{median}",
+                    "text-font": [
+                        "DIN Offc Pro Medium",
+                        "Arial Unicode MS Bold"
+                    ],
+                    "text-size": 12
+                }
+            });
+
+            // studio layer
+            map.addLayer({
+                "id": "studio",
+                "type": "fill",
+                "source": "housing_data",
+                "paint": {
+                    "fill-color": {
+                        property: "studio",
+                        stops: [
+                            [BREAKS_STUDIO[0], COLORS[0]],
+                            [BREAKS_STUDIO[1], COLORS[1]],
+                            [BREAKS_STUDIO[2], COLORS[2]],
+                            [BREAKS_STUDIO[3], COLORS[3]],
+                            [BREAKS_STUDIO[4], COLORS[4]],
+                            [BREAKS_STUDIO[5], COLORS[5]],
+                            [BREAKS_STUDIO[6], COLORS[6]]
+                        ]
+                    },
+                    "fill-opacity": 0.7
+                }
+            });
+            map.addLayer({
+                "id": "studio_label",
+                "type": "symbol",
+                "source": "housing_data",
+                "layout": {
+                    "text-field": "{studio}",
+                    "text-font": [
+                        "DIN Offc Pro Medium",
+                        "Arial Unicode MS Bold"
+                    ],
+                    "text-size": 12
+                }
+            });
+
+
+            // one bedroom layer
+            map.addLayer({
+                "id": "onebedroom",
+                "type": "fill",
+                "source": "housing_data",
+                "paint": {
+                    "fill-color": {
+                        property: "onebed",
+                        stops: [
+                            [BREAKS_ONE[0], COLORS[0]],
+                            [BREAKS_ONE[1], COLORS[1]],
+                            [BREAKS_ONE[2], COLORS[2]],
+                            [BREAKS_ONE[3], COLORS[3]],
+                            [BREAKS_ONE[4], COLORS[4]],
+                            [BREAKS_ONE[5], COLORS[5]],
+                            [BREAKS_ONE[6], COLORS[6]]
+                        ]
+                    },
+                    "fill-opacity": 0.7
+                }
+            });
+            map.addLayer({
+                "id": "one_label",
+                "type": "symbol",
+                "source": "housing_data",
+                "layout": {
+                    "text-field": "{onebed}",
+                    "text-font": [
+                        "DIN Offc Pro Medium",
+                        "Arial Unicode MS Bold"
+                    ],
+                    "text-size": 12
+                }
+            });
+
+
+            // two bedroom layer
+            map.addLayer({
+                "id": "twobedroom",
+                "type": "fill",
+                "source": "housing_data",
+                "paint": {
+                    "fill-color": {
+                        property: "twobed",
+                        stops: [
+                            [BREAKS_TWO[0], COLORS[0]],
+                            [BREAKS_TWO[1], COLORS[1]],
+                            [BREAKS_TWO[2], COLORS[2]],
+                            [BREAKS_TWO[3], COLORS[3]],
+                            [BREAKS_TWO[4], COLORS[4]],
+                            [BREAKS_TWO[5], COLORS[5]],
+                            [BREAKS_TWO[6], COLORS[6]]
+                        ]
+                    },
+                    "fill-opacity": 0.7
+                }
+            });
+            map.addLayer({
+                "id": "two_label",
+                "type": "symbol",
+                "source": "housing_data",
+                "layout": {
+                    "text-field": "{twobed}",
+                    "text-font": [
+                        "DIN Offc Pro Medium",
+                        "Arial Unicode MS Bold"
+                    ],
+                    "text-size": 12
+                }
+            });
+
+
+            // three bedroom layer
+            map.addLayer({
+                "id": "threebedroom",
+                "type": "fill",
+                "source": "housing_data",
+                "paint": {
+                    "fill-color": {
+                        property: "threebed",
+                        stops: [
+                            [BREAKS_THREE[0], COLORS[0]],
+                            [BREAKS_THREE[1], COLORS[1]],
+                            [BREAKS_THREE[2], COLORS[2]],
+                            [BREAKS_THREE[3], COLORS[3]],
+                            [BREAKS_THREE[4], COLORS[4]],
+                            [BREAKS_THREE[5], COLORS[5]],
+                            [BREAKS_THREE[6], COLORS[6]]
+                        ]
+                    },
+                    "fill-opacity": 0.7
+                }
+            });
+            map.addLayer({
+                "id": "three_label",
+                "type": "symbol",
+                "source": "housing_data",
+                "layout": {
+                    "text-field": "{threebed}",
+                    "text-font": [
+                        "DIN Offc Pro Medium",
+                        "Arial Unicode MS Bold"
+                    ],
+                    "text-size": 12
+                }
+            });
+
+            // set inital visability
+            map.setLayoutProperty('studio', 'visibility', 'none');
+            map.setLayoutProperty('studio_label', 'visibility', 'none');
+
+            map.setLayoutProperty('onebedroom', 'visibility', 'none');
+            map.setLayoutProperty('one_label', 'visibility', 'none');
+
+            map.setLayoutProperty('twobedroom', 'visibility', 'none');
+            map.setLayoutProperty('two_label', 'visibility', 'none');
+
+            map.setLayoutProperty('threebedroom', 'visibility', 'none');
+            map.setLayoutProperty('three_label', 'visibility', 'none');
+
+        });
+
+        var curr = 'median';
+
+        map.on('mousemove', function(e) {
+            var data = map.queryRenderedFeatures(e.point, {
+                layers: [curr]
+            });
+
+            if (data.length > 0) {
+                if (data[0].properties.name == 'Central Park' || data[0].properties.name == 'Civic Center') {
+                    document.getElementById('pd').innerHTML = '<p>Hover over a neighborhood!</p>';
+                } else {
+                    var x = '<h3><strong>' + data[0].properties.name + '</strong></h3><p> Median Overall Rent Price: $<strong><em>' + data[0].properties.median + '</strong> </em></p>' +
+                        '<p> Median Studio Rent Price: $<strong><em>' + data[0].properties.studio + '</strong> </em></p>' +
+                        '<p> Median 1 Bedroom Price: $<strong><em>' + data[0].properties.onebed + '</strong> </em></p>' +
+                        '<p> Median 2 Bedroom Price: $<strong><em>' + data[0].properties.twobed + '</strong> </em></p>' +
+                        '<p> Median 3+ Bedroom Price: $<strong><em>' + data[0].properties.threebed + '</strong> </em></p>';
+                    document.getElementById('pd').innerHTML = x;
+                }
+            } else {
+                document.getElementById('pd').innerHTML = '<p>Hover over a neighborhood!</p>';
+            }
+        });
+
+        document.getElementById("medianButton").addEventListener("click", function() {
+            map.setLayoutProperty('median', 'visibility', 'visible');
+            map.setLayoutProperty('median_label', 'visibility', 'visible');
+
+            map.setLayoutProperty('studio', 'visibility', 'none');
+            map.setLayoutProperty('studio_label', 'visibility', 'none');
+
+            map.setLayoutProperty('onebedroom', 'visibility', 'none');
+            map.setLayoutProperty('one_label', 'visibility', 'none');
+
+            map.setLayoutProperty('twobedroom', 'visibility', 'none');
+            map.setLayoutProperty('two_label', 'visibility', 'none');
+
+            map.setLayoutProperty('threebedroom', 'visibility', 'none');
+            map.setLayoutProperty('three_label', 'visibility', 'none');
+
+            document.getElementById('displaying').innerHTML = 'Currently Displaying Median Prices';
+            curr = 'median';
+        });
+
+        document.getElementById("studioButton").addEventListener("click", function() {
+            map.setLayoutProperty('median', 'visibility', 'none');
+            map.setLayoutProperty('median_label', 'visibility', 'none');
+
+            map.setLayoutProperty('studio', 'visibility', 'visible');
+            map.setLayoutProperty('studio_label', 'visibility', 'visible');
+
+            map.setLayoutProperty('onebedroom', 'visibility', 'none');
+            map.setLayoutProperty('one_label', 'visibility', 'none');
+
+            map.setLayoutProperty('twobedroom', 'visibility', 'none');
+            map.setLayoutProperty('two_label', 'visibility', 'none');
+
+            map.setLayoutProperty('threebedroom', 'visibility', 'none');
+            map.setLayoutProperty('three_label', 'visibility', 'none');
+
+            document.getElementById('displaying').innerHTML = 'Currently Displaying Studio Prices';
+            curr = 'studio';
+        });
+
+        document.getElementById("oneButton").addEventListener("click", function() {
+            map.setLayoutProperty('median', 'visibility', 'none');
+            map.setLayoutProperty('median_label', 'visibility', 'none');
+
+            map.setLayoutProperty('studio', 'visibility', 'none');
+            map.setLayoutProperty('studio_label', 'visibility', 'none');
+
+            map.setLayoutProperty('onebedroom', 'visibility', 'visible');
+            map.setLayoutProperty('one_label', 'visibility', 'visible');
+
+            map.setLayoutProperty('twobedroom', 'visibility', 'none');
+            map.setLayoutProperty('two_label', 'visibility', 'none');
+
+            map.setLayoutProperty('threebedroom', 'visibility', 'none');
+            map.setLayoutProperty('three_label', 'visibility', 'none');
+
+            document.getElementById('displaying').innerHTML = 'Currently Displaying 1 Bedroom Prices';
+            curr = 'onebedroom';
+        });
+
+        document.getElementById("twoButton").addEventListener("click", function() {
+            map.setLayoutProperty('median', 'visibility', 'none');
+            map.setLayoutProperty('median_label', 'visibility', 'none');
+
+            map.setLayoutProperty('studio', 'visibility', 'none');
+            map.setLayoutProperty('studio_label', 'visibility', 'none');
+
+            map.setLayoutProperty('onebedroom', 'visibility', 'none');
+            map.setLayoutProperty('one_label', 'visibility', 'none');
+
+            map.setLayoutProperty('twobedroom', 'visibility', 'visible');
+            map.setLayoutProperty('two_label', 'visibility', 'visible');
+
+            map.setLayoutProperty('threebedroom', 'visibility', 'none');
+            map.setLayoutProperty('three_label', 'visibility', 'none');
+
+            document.getElementById('displaying').innerHTML = 'Currently Displaying 2 Bedroom Prices';
+            curr = 'twobedroom';
+        });
+
+        document.getElementById("threeButton").addEventListener("click", function() {
+            map.setLayoutProperty('median', 'visibility', 'none');
+            map.setLayoutProperty('median_label', 'visibility', 'none');
+
+            map.setLayoutProperty('studio', 'visibility', 'none');
+            map.setLayoutProperty('studio_label', 'visibility', 'none');
+
+            map.setLayoutProperty('onebedroom', 'visibility', 'none');
+            map.setLayoutProperty('one_label', 'visibility', 'none');
+
+            map.setLayoutProperty('twobedroom', 'visibility', 'none');
+            map.setLayoutProperty('two_label', 'visibility', 'none');
+
+            map.setLayoutProperty('threebedroom', 'visibility', 'visible');
+            map.setLayoutProperty('three_label', 'visibility', 'visible');
+
+            document.getElementById('displaying').innerHTML = 'Currently Displaying 3+ Bedroom Prices';
+            curr = 'threebedroom';
+        });
+
+        map.getCanvas().style.cursor = 'default';
+    </script>
+</body>
+
+</html>
