@@ -346,11 +346,12 @@
                         '<p> Median Studio Rent Price: $<strong><em>' + data[0].properties.studio + '</strong> </em></p>' +
                         '<p> Median 1 Bedroom Price: $<strong><em>' + data[0].properties.onebed + '</strong> </em></p>' +
                         '<p> Median 2 Bedroom Price: $<strong><em>' + data[0].properties.twobed + '</strong> </em></p>' +
-                        '<p> Median 3+ Bedroom Price: $<strong><em>' + data[0].properties.threebed + '</strong> </em></p>';
+                        '<p> Median 3+ Bedroom Price: $<strong><em>' + data[0].properties.threebed + '</strong> </em></p>' +
+                        '<p> All data was collected from StreetEasy</p>';
                     document.getElementById('pd').innerHTML = x;
                 }
             } else {
-                document.getElementById('pd').innerHTML = '<p>Hover over a neighborhood!</p>';
+                document.getElementById('pd').innerHTML = '<p>Hover over a neighborhood!</p>' + '<p> All data was collected from StreetEasy</p>';
             }
         });
 
