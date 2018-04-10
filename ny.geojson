@@ -11059,7 +11059,7 @@
          "properties":{
             "cartodb_id":207,
             "name":"Nolita",
-            "median": 5000, "studio": "2650", "onebed": 3700, "twobed": 7200, "threebed": 13350,
+            "median": 5000, "studio": 2650, "onebed": 3700, "twobed": 7200, "threebed": 13350,
             "created_at":"2014-03-09T19:11:53Z",
             "updated_at":"2014-03-09T19:11:53Z"
          },
